@@ -1,0 +1,104 @@
+---
+title: "Foundations of Geospatial"
+author: "Adam Dennett"
+format: 
+  revealjs:
+    logo: casa_logo.jpg
+    transition: slide
+    transition-speed: fast
+    #width: 1920
+   # height: 1080
+editor: visual
+---
+
+## About Me
+
+![](images/casa_logo.jpg){fig-align="right" width="74" height="100"}
+
+-   Professor of Urban Analytics & Current Head of Department \@ Bartlett Centre for Advanced Spatial Analysis (CASA), UCL
+
+-   Geographer by background - ex-Secondary School Teacher - back in HE for 15+ years
+
+-   Taught GIS / Spatial Data Science at postgrad level for last 10 years
+
+## Key Geospatial Concepts
+
+::: {.fragment .fade-in-then-semi-out}
+-   Where? (absolute)
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+-   Where? (relative)
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+-   How close/far?
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+-   What scale?
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+-   What shape?
+:::
+
+## Where? (absolute)
+
+::: columns
+::: {.column width="50%"}
+-   Everything happens somewhere
+
+    -   We're here in King's Cross, Camden, London, England, \*Europe, Northern Hemisphere, Earth
+:::
+
+::: {.column width="50%"}
+![](images/location1.png)
+:::
+:::
+
+## Where? (absolute)
+
+::: columns
+::: {.column width="30%"}
+-   How do we know *exactly* where?
+:::
+
+::: {.column width="70%"}
+[![https://xkcd.com/2480/](https://imgs.xkcd.com/comics/no_the_other_one.png){fig-alt="XKCD - No, The Other One"}](https://xkcd.com/2480/)
+:::
+:::
+
+## Where? Coordinate Reference Systems
+
+::: columns
+::: {.r-fit-text .column width="60%"}
+-   More reliable than names are coordinates
+
+-   The earth is roughly spherical and points anywhere on its surface can be described using the World Geodetic System (WGS) - a geographic (spherical) coordinate system
+
+-   Points can be referenced according to their position on a grid of latitudes (degrees north or south of the equator) and longitudes (degrees east or west of the Prime - Greenwich - meridian)
+
+-   The last major revision of the World Geodetic System was in 1984 and WGS84 is still used today as the standard system for references places on the globe.
+:::
+
+::: {.r-fit-text .column width="40%"}
+[![](https://www.earthdatascience.org/images/earth-analytics/spatial-data/latitude-longitude-globe-ESRI.gif){fig-alt="https://www.earthdatascience.org/courses/use-data-open-source-python/intro-vector-data-python/spatial-data-vector-shapefiles/geographic-vs-projected-coordinate-reference-systems-python/"}](https://www.earthdatascience.org/courses/use-data-open-source-python/intro-vector-data-python/spatial-data-vector-shapefiles/geographic-vs-projected-coordinate-reference-systems-python/)
+:::
+:::
+
+## 
+
+Where? Coordinate Reference Systems
+
+::: columns
+::: {.r-fit-text .column width="50%"}
+-   Projected Coordinate Reference Systems convert the 3D globe to a 2D plane and can do so in a huge variety of different ways
+
+-   Most national mapping agencies have their own projected coordinate systems - in Britain the Ordnance Survey maintain the British National Grid which locates places according to 6-digit Easting and Northing coordinates
+:::
+
+::: {.column width="50%"}
+![](https://www.earthdatascience.org/images/earth-analytics/spatial-data/spatial-projection-transformations-crs.png)
+:::
+:::
