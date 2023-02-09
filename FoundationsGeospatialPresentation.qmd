@@ -73,7 +73,7 @@ editor: visual
 
 ::: columns
 ::: {.r-fit-text .column width="60%"}
--   More reliable than names are coordinates
+-   More reliable than names that are rarely unique or reference fuzzy locations, are coordinates
 
 -   The earth is roughly spherical and points anywhere on its surface can be described using the World Geodetic System (WGS) - a geographic (spherical) coordinate system
 
