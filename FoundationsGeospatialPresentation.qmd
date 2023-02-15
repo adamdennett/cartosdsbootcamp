@@ -1,5 +1,5 @@
 ---
-title: "Foundations of Geospatial"
+title: "Foundations of Geospatial Analysis"
 author: "Adam Dennett"
 format: 
   revealjs:
@@ -21,6 +21,14 @@ editor: visual
 
 -   Taught GIS / Spatial Data Science at postgrad level for last 10 years
 
+## About this session
+
+-   Whistle-stop tour of some of the key concepts relating to spatial data
+
+-   Some examples of how carrying out analyses of spatial data can require additional attention - "spatial is special"
+
+    -   An illustrative example of analysing some spatial data for London
+
 ## Key Geospatial Concepts
 
 ::: {.fragment .fade-in-then-semi-out}
@@ -32,7 +40,7 @@ editor: visual
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
--   How close/far?
+-   How near or distant?
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
@@ -49,7 +57,7 @@ editor: visual
 ::: {.column width="50%"}
 -   Everything happens somewhere
 
-    -   We're here in King's Cross, Camden, London, England, \*Europe, Northern Hemisphere, Earth
+    -   We're here: Wallspace, 22 Duke's Road, Camden, London, England, \*Europe, Northern Hemisphere, Earth
 :::
 
 ::: {.column width="50%"}
@@ -73,13 +81,13 @@ editor: visual
 
 ::: columns
 ::: {.r-fit-text .column width="60%"}
--   More reliable than names that are rarely unique or reference fuzzy locations, are coordinates
+-   More reliable than names (that are rarely unique or reference fuzzy locations), are coordinates
 
 -   The earth is roughly spherical and points anywhere on its surface can be described using the World Geodetic System (WGS) - a geographic (spherical) coordinate system
 
 -   Points can be referenced according to their position on a grid of latitudes (degrees north or south of the equator) and longitudes (degrees east or west of the Prime - Greenwich - meridian)
 
--   The last major revision of the World Geodetic System was in 1984 and WGS84 is still used today as the standard system for references places on the globe.
+-   The last major revision of the World Geodetic System was in 1984 and *WGS84* is still used today as the standard system for references places on the globe.
 :::
 
 ::: {.r-fit-text .column width="40%"}
@@ -96,9 +104,170 @@ Where? Coordinate Reference Systems
 -   Projected Coordinate Reference Systems convert the 3D globe to a 2D plane and can do so in a huge variety of different ways
 
 -   Most national mapping agencies have their own projected coordinate systems - in Britain the Ordnance Survey maintain the British National Grid which locates places according to 6-digit Easting and Northing coordinates
+
+-   Every coordinate system can be referenced by its EPSG code, e.g. WGS84 = 4326 or British National Grid = 27700 with mathematical transformations to convert between them
 :::
 
 ::: {.column width="50%"}
 ![](https://www.earthdatascience.org/images/earth-analytics/spatial-data/spatial-projection-transformations-crs.png)
+:::
+:::
+
+## Where? Coordinate Reference Systems
+
+::: columns
+::: {.r-fit-text .column width="50%"}
+-   Once we have a coordinate reference system we can locate objects accurately in space
+
+-   Most objects that spatial data scientists are concerned with (apart from gridded representations, which we will ignore for now!) can be simplified to either a point, a line or a polygon in that space
+
+-   Polygons and lines are just multiple point coordinates joined together!
+:::
+
+::: {.r-fit-text .column width="50%"}
+[![](images/wkt_geom_primitives.png)](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry)
+:::
+:::
+
+## Where? Relative - Tobler's First Law of Geography
+
+::: columns
+::: {.r-fit-text .column width="50%"}
+"Everything is related to everything else, but near things are more related than distant things."
+
+![](images/image-914957276.png){width="2486"}
+
+-   This observation underpins much of what spatial data scientists do
+
+-   Being able to locate something in space allows us to:
+
+    -   explain why something may be occurring where it is
+
+    -   make better predictions about nearby or further away things
+:::
+
+::: {.r-fit-text .column width="50%"}
+![](images/tobler.jpg){width="300"}
+:::
+:::
+
+## Where? Relative - Defining 'near' and 'distant'
+
+::: columns
+::: {.r-fit-text .column width="50%"}
+-   Near and distant can mean different things in different contexts
+
+    -   the farthest one would travel to buy a pint of milk is somewhat different to farthest one might be willing to commute for a job
+
+-   In spatial data science one way of separating near from distant can simply be to define their topological relationship
+
+-   The Dimensionally Extended 9-Intersection Model (DE-9IM) is the standard topological model used in GIS to define spatial relationships between objects
+:::
+
+::: {.column width="50%"}
+![](images/DE-91M.png)
+:::
+:::
+
+## Where? Relative - Exploring Near and Distant
+
+::: columns
+::: {.column width="35%"}
+-   If we take London and all of its Wards we can begin to explore how we can define those that are near and those that are distant from each other
+:::
+
+::: {.column width="65%"}
+```{r}
+library(tidyverse)
+library(tmap)
+library(spdep)
+library(sf)
+library(readxl)
+library(janitor)
+```
+
+```{r, echo=F, results='hide'}
+##web address for data is here, can't read directly from url - https://data.london.gov.uk/download/ward-profiles-and-atlas/a187b63e-bf4f-4449-b644-ab86a0a8569d/ward-profiles-excel-version.xls
+WardData <- read_excel("data/ward-profiles-excel-version.xls", range = "Data!A1:BO626", na = c("NA", "n/a")) %>% clean_names()
+
+##get some ward boundaries (2014) from here: https://data.london.gov.uk/dataset/statistical-gis-boundary-files-london
+LondonWardsMerged <- st_read("data/London_Ward_CityMerged.shp") %>%
+  st_transform(.,27700)
+```
+
+```{r}
+tmap_mode("view")
+tm_shape(LondonWardsMerged)+
+  tm_polygons(alpha = 0.2, col=NA)
+```
+
+```{r}
+LondonWardsMerged <- LondonWardsMerged %>% 
+  left_join(WardData, 
+            by = c("GSS_CODE" = "new_code"))%>%
+  dplyr::distinct(GSS_CODE, .keep_all = T)%>%
+  dplyr::select(GSS_CODE, ward_name, average_gcse_capped_point_scores_2014)
+```
+:::
+:::
+
+## Where? Relative - Exploring Near and Distant
+
+::: columns
+::: {.r-fit-text .column width="20%"}
+-   If we measure the distance from the centre (centroid) of one ward to another, then we might decide that the 1st, 2nd 3rd, kth. closest wards are near, the others are far.
+
+-   We can then decide to include the "k" nearest neighbours or exclude the rest
+:::
+
+::: {.column width="80%"}
+```{r}
+
+coordsW <- coordinates(as(LondonWardsMerged, "Spatial"))  
+
+col.knn <- knearneigh(coordsW, k=1)
+plot(st_geometry(LondonWardsMerged), border="grey")
+plot(knn2nb(col.knn), coordsW, add=TRUE, col="red")
+title(main="K nearest neighbours, k = 1")
+```
+:::
+:::
+
+## Where? Relative - Exploring Near and Distant
+
+::: columns
+::: {.column width="50%"}
+```{r}
+col.knn <- knearneigh(coordsW, k=2)
+plot(st_geometry(LondonWardsMerged), border="grey")
+plot(knn2nb(col.knn), coordsW, add=TRUE, col="red")
+title(main="K nearest neighbours, k = 2")
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+col.knn <- knearneigh(coordsW, k=3)
+plot(st_geometry(LondonWardsMerged), border="grey")
+plot(knn2nb(col.knn), coordsW, add=TRUE, col="red")
+title(main="K nearest neighbours, k = 3")
+```
+:::
+:::
+
+## Where? Relative - Exploring Near and Distant
+
+::: columns
+::: {.column width="20%"}
+:::
+
+::: {.column width="80%"}
+```{r}
+LWard_nb <- poly2nb(as(LondonWardsMerged, "Spatial"))
+
+plot(st_geometry(LondonWardsMerged), border="grey")
+plot(LWard_nb, st_geometry(LondonWardsMerged), col="red")
+
+```
 :::
 :::
