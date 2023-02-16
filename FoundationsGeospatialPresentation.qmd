@@ -1,14 +1,17 @@
 ---
 title: "Foundations of Geospatial Analysis"
 author: "Adam Dennett"
+institute: Centre for Advanced Spatial Analysis, University College London
 format: 
   revealjs:
+    smaller: true
     logo: casa_logo.jpg
     transition: slide
     transition-speed: fast
     #width: 1920
    # height: 1080
 editor: visual
+slide-number: true
 ---
 
 ## About Me
@@ -25,9 +28,9 @@ editor: visual
 
 -   Whistle-stop tour of some of the key concepts relating to spatial data
 
--   Some examples of how carrying out analyses of spatial data can require additional attention - "spatial is special"
+-   An illustrative example analysing some spatial data in London - demonstrating the "spatial is special" idiom and how we might account for spatial factors in our analysis
 
-    -   An illustrative example of analysing some spatial data for London
+-   I hope you'll all leave with a better understanding of how we should pay attention to the influence of space in any analysis
 
 ## Key Geospatial Concepts
 
@@ -97,7 +100,7 @@ editor: visual
 
 ## 
 
-Where? Coordinate Reference Systems
+## Where? Coordinate Reference Systems
 
 ::: columns
 ::: {.r-fit-text .column width="50%"}
@@ -113,7 +116,7 @@ Where? Coordinate Reference Systems
 :::
 :::
 
-## Where? Coordinate Reference Systems
+## Where? Describing and Locating Things with Coordinates
 
 ::: columns
 ::: {.r-fit-text .column width="50%"}
@@ -132,7 +135,7 @@ Where? Coordinate Reference Systems
 ## Where? Relative - Tobler's First Law of Geography
 
 ::: columns
-::: {.r-fit-text .column width="50%"}
+::: {.r-fit-text .column width="65%"}
 "Everything is related to everything else, but near things are more related than distant things."
 
 ![](images/image-914957276.png){width="2486"}
@@ -148,7 +151,7 @@ Where? Coordinate Reference Systems
 -   Underpins the whole Geodeomographics (customer segmentation) industry!!
 :::
 
-::: {.r-fit-text .column width="50%"}
+::: {.r-fit-text .column width="35%"}
 ![](images/tobler.jpg){width="300"}
 :::
 :::
@@ -161,9 +164,9 @@ Where? Coordinate Reference Systems
 
     -   the furthest one would travel to buy a pint of milk is somewhat different to furthest one might be willing to commute for a job
 
--   In spatial data science one way of separating near from distant can simply be to define their topological relationship
+-   In spatial data science one way of separating near from distant can simply be to define their topological relationship - Dimensionally Extended 9-Intersection Model (DE-9IM) is the standard topological model used in GIS
 
--   The Dimensionally Extended 9-Intersection Model (DE-9IM) is the standard topological model used in GIS to define spatial relationships between objects
+-   Touching or overlapping objects = 'near'
 :::
 
 ::: {.column width="50%"}
@@ -175,8 +178,7 @@ Where? Coordinate Reference Systems
 
 ::: columns
 ::: {.r-fit-text .column width="35%"}
--   Topologically, if two polygons share a boundary, they are immediate neighbours and might be defined as 'near'
--   If we take London and all of its Wards we can begin to explore how we can define those that are near and those that are distant from each other
+-   Near and distant in London
 :::
 
 ::: {.column width="65%"}
@@ -189,7 +191,6 @@ library(readxl)
 library(janitor)
 library(spatialreg)
 library(splm)
-library(plm)
 
 ```
 
@@ -203,17 +204,15 @@ LondonWardsMerged <- st_read("data/London_Ward_CityMerged.shp") %>%
 ```
 
 ```{r}
-tmap_mode("view")
-tm_shape(LondonWardsMerged)+
-  tm_polygons(alpha = 0.2, col=NA)
-```
-
-```{r}
 LondonWardsMerged <- LondonWardsMerged %>% 
   left_join(WardData, 
             by = c("GSS_CODE" = "new_code"))%>%
   dplyr::distinct(GSS_CODE, .keep_all = T)%>%
   dplyr::select(GSS_CODE, ward_name, average_gcse_capped_point_scores_2014, unauthorised_absence_in_all_schools_percent_2013)
+
+tmap_mode("view")
+tm_shape(LondonWardsMerged)+
+  tm_polygons(alpha = 0.2, col=NA)
 ```
 :::
 :::
@@ -223,8 +222,6 @@ LondonWardsMerged <- LondonWardsMerged %>%
 ::: columns
 ::: {.r-fit-text .column width="20%"}
 -   If we measure the distance from the centre (centroid) of one ward to another, then we might decide that the 1st, 2nd, 3rd, kth. closest wards are near, the others are far.
-
--   We can then decide to include the "k" nearest neighbours or exclude the rest
 :::
 
 ::: {.column width="80%"}
@@ -243,16 +240,11 @@ title(main="K nearest neighbours, k = 1")
 ## Where? Relative - Exploring Near and Distant
 
 ::: columns
-::: {.column width="50%"}
-```{r}
-col.knn <- knearneigh(coordsW, k=2)
-plot(st_geometry(LondonWardsMerged), border="grey")
-plot(knn2nb(col.knn), coordsW, add=TRUE, col="red")
-title(main="K nearest neighbours, k = 2")
-```
+::: {.r-fit-text .column width="20%"}
+-   We can then decide to include the "k" nearest neighbours or exclude the rest
 :::
 
-::: {.column width="50%"}
+::: {.column width="80%"}
 ```{r}
 col.knn <- knearneigh(coordsW, k=3)
 plot(st_geometry(LondonWardsMerged), border="grey")
@@ -265,7 +257,10 @@ title(main="K nearest neighbours, k = 3")
 ## Where? Relative - Exploring Near and Distant
 
 ::: columns
-::: {.column width="20%"}
+::: {.r-fit-text .column width="20%"}
+-   Other conceptions of *near* might include any contiguous ward with *distant* simply being those which are not contiguous
+
+-   Near or distant could also be defined by some distance threshold
 :::
 
 ::: {.column width="80%"}
@@ -282,7 +277,7 @@ plot(LWard_nb, st_geometry(LondonWardsMerged), add=TRUE, col="red")
 
 ## Spatial Analysis of 'where'?
 
-Where in London do students do best and worst at school?
+-   Where in London do students perform best and worst in their post-16 exams?
 
 ```{r}
 tm_shape(LondonWardsMerged)+
@@ -298,18 +293,23 @@ tm_shape(LondonWardsMerged)+
 
 Is there any pattern? Do better scores and worse scores appear to be clustered? How can we tell?
 
-## 
-Spatial Autocorrelation
+## Spatial Autocorrelation
 
--   Spatial Autocorrelation is the phenomenon of near things being more similar than distant things. Do neighbouring wards have more similar GCSE points scores than distant wards?
+-   Spatial Autocorrelation - phenomenon of near things being more similar than distant things.
 
--   We can test for spatial autocorrelation by comparing the GCSE Scores in any given ward with the GCSE scores in *neighbouring* wards (however we choose to define our neighbours - k-nearest, those that are contiguous etc.)
+    -   Do neighbouring wards have more similar GCSE points scores than distant wards?
 
-## Spatial Autocorrelation 
+-   Can test for spatial autocorrelation by comparing the GCSE Scores in any given ward with the GCSE scores in *neighbouring* wards (however we choose to define our neighbours - k-nearest, those that are contiguous etc.)
+
+-   Average value of GCSE scores in the neighbouring wards is known as the ***spatial lag*** of GSCE scores
+
+## Spatial Autocorrelation
+
+-   If there is a linear correlation between the variable and its spatial lag, we can observe that values in ***near*** places do tend to cluster
 
 ```{r}
 
-Lward.lw <- nb2listw(LWard_nb, style="C")
+Lward.lw <- nb2listw(LWard_nb, style="W")
 
 LondonWardsMerged$z_gcse <- scale(LondonWardsMerged$average_gcse_capped_point_scores_2014)
 
@@ -317,17 +317,142 @@ Vx <- lag.listw(nb2listw(LWard_nb, style="W"), LondonWardsMerged$average_gcse_ca
 
 LondonWardsMerged$slag_gcse <- Vx
 
-LondonWardsMerged$z_slag_gcse <- scale(LondonWardsMerged$z_gcse)
+LondonWardsMerged$z_slag_gcse <- scale(LondonWardsMerged$slag_gcse)
 
-coef(lm(average_gcse_capped_point_scores_2014 ~ slag_gcse, data = LondonWardsMerged))
-p <- ggplot(LondonWardsMerged, aes(slag_gcse, average_gcse_capped_point_scores_2014))
-p + geom_point() + geom_smooth(method = "lm", se = FALSE)
+coef(lm(slag_gcse ~ average_gcse_capped_point_scores_2014, data = LondonWardsMerged))
+
+p <- ggplot(LondonWardsMerged, aes(average_gcse_capped_point_scores_2014, slag_gcse))
+p + geom_point() + geom_smooth(method = "lm", se = FALSE) + xlab("Avg GCSE Score 2014") + ylab("Spatially lagged Avg GCSE Score 2014")
+
+#coef(lm(z_slag_gcse ~ z_gcse, data = LondonWardsMerged))
+#p1 <- ggplot(LondonWardsMerged, aes(z_gcse, z_slag_gcse))
+#p1 + geom_point() + geom_smooth(method = "lm", se = FALSE)
 
 
 ```
 
-Moran's I
+## Moran's I {.r-fit-text .column}
+
+-   Moran's I is another name for the least-squares regression slope parameter
+-   Values range from +1 (perfect spatial autocorrelation) to -1 (perfect dispersal) with values close to 0 indicating no relationship
 
 ```{r}
-moran.test(LondonWardsMerged$average_gcse_capped_point_scores_2014, Lward.lw)
+#mp <- moran.plot(LondonWardsMerged$average_gcse_capped_point_scores_2014, nb2listw(LWard_nb), pch=19)
+#moran.plot(as.vector(scale(LondonWardsMerged$average_gcse_capped_point_scores_2014)), nb2listw(LWard_nb), xlim=c(-2, 4), ylim=c(-2,4), pch=19)
+
+#if (require(ggplot2, quietly=TRUE)) {
+#  xname <- attr(mp, "ward_name")
+#  ggplot(mp, aes(x=x, y=wx)) + geom_point(shape=1) + 
+#    geom_smooth(formula=y ~ x, method="lm") + 
+#    geom_hline(yintercept=mean(mp$wx), lty=2) + 
+#    geom_vline(xintercept=mean(mp$x), lty=2) + theme_minimal() + 
+#    geom_point(data=mp[mp$is_inf,], aes(x=x, y=wx), shape=9) +
+#    xlab(xname) + ylab(paste0("Spatially lagged ", xname))
+#}
 ```
+
+```{r echo = T}
+moran.test(LondonWardsMerged$average_gcse_capped_point_scores_2014, nb2listw(LWard_nb))
+```
+
+## Moran's I
+
+::: columns
+::: {.column width="30%"}
+-   Moran's I = 0.42
+
+-   Moderate, positive spatial autocorrelation between average GCSE scores in London - some clustering of both low and high scores
+:::
+
+::: {.column width="70%"}
+```{r}
+tm_shape(LondonWardsMerged)+
+  tm_polygons(
+    "average_gcse_capped_point_scores_2014",
+    style="jenks",
+    palette="Reds",
+    midpoint=NA,
+    alpha = 0.5,
+    title="Avg GCSE Score 2014",
+    border.alpha = 0)
+```
+:::
+:::
+
+## Explaining Spatial Patterns
+
+-   Having observed some spatial patterns in school exam performance in London, we might next want to *explain* these patterns, perhaps using another variable measured for the same spatial units.
+
+-   Our own experience might tell us that missing class could negatively impact our ability to learn things in that class
+
+-   Hypothesis: ***wards where there are higher rates of absence from school might tend to experience lower average exam grades***
+
+## Explaining Spatial Patterns
+
+::: columns
+::: {.column width="50%"}
+-   Taking the whole of London, it would appear that there is a moderately strong, negative relationship between missing school and exam performance
+
+-   For every 1% of additional school days missed, we might expect a decrease of -41 points in GCSE score.
+
+-   But does this relationship hold true across all wards in the city?
+:::
+
+::: {.column width="50%"}
+```{r}
+coef(lm(average_gcse_capped_point_scores_2014 ~ unauthorised_absence_in_all_schools_percent_2013, data = LondonWardsMerged))
+p2 <- ggplot(LondonWardsMerged, aes(x = unauthorised_absence_in_all_schools_percent_2013, y = average_gcse_capped_point_scores_2014))
+p2 + geom_point() + geom_smooth(method = "lm", se = FALSE) + xlab("% Unauthoried Absence Days 2013") + ylab("Avg GCSE Score 2014")
+```
+:::
+:::
+
+## Explaining Spatial Patterns
+
+::: columns
+::: {.r-fit-text .column width="30%"}
+-   Moran's I of GSCE scores means that we already know that the observations are probably not independent of each other (violating one assumption of regression)
+
+-   Mapping the residual values from the regression model allows us to observe any spatial clustering in the errors
+
+-   Clustering of residuals could also indicate a violation of the independence assumption of errors
+:::
+
+::: {.column width="70%"}
+```{r}
+model1 <- lm(average_gcse_capped_point_scores_2014 ~ unauthorised_absence_in_all_schools_percent_2013, data = LondonWardsMerged)
+
+LondonWardsMerged$model1_resids <- model1$residuals
+
+moran.test(LondonWardsMerged$model1_resids, nb2listw(LWard_nb))
+
+tm_shape(LondonWardsMerged)+
+  tm_polygons(
+    "model1_resids",
+    style="jenks",
+    palette="RdYlBu",
+    midpoint=NA,
+    alpha = 0.5,
+    title="Residuals",
+    border.alpha = 0)
+```
+:::
+:::
+
+## Dealing with Spatial Patterns - Spatial Regression Models
+
+::: columns
+::: {.r-fit-text .column width="25%"}
+-   One way of coping with spatial dependence in the dependent variable is to include the spatial lag of that variable as an independent explanatory variable
+
+-   Running the spatial lag model reveals that the spatial lag ***is*** statistically significant and has the effect of reducing the estimated impact of missing 1% of schools days from -42 points to -31 points.
+:::
+
+::: {.column width="75%"}
+```{r}
+slag_gcse_model <- lagsarlm(average_gcse_capped_point_scores_2014 ~ unauthorised_absence_in_all_schools_percent_2013, data = LondonWardsMerged, nb2listw(LWard_nb, style="W"), method = "eigen")
+
+summary(slag_gcse_model)
+```
+:::
+:::
