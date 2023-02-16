@@ -8,8 +8,8 @@ format:
     logo: casa_logo.jpg
     transition: slide
     transition-speed: fast
-    #width: 1920
-   # height: 1080
+    width: 1600
+    height: 900
 editor: visual
 slide-number: true
 ---
@@ -97,8 +97,6 @@ slide-number: true
 [![](https://www.earthdatascience.org/images/earth-analytics/spatial-data/latitude-longitude-globe-ESRI.gif){fig-alt="https://www.earthdatascience.org/courses/use-data-open-source-python/intro-vector-data-python/spatial-data-vector-shapefiles/geographic-vs-projected-coordinate-reference-systems-python/"}](https://www.earthdatascience.org/courses/use-data-open-source-python/intro-vector-data-python/spatial-data-vector-shapefiles/geographic-vs-projected-coordinate-reference-systems-python/)
 :::
 :::
-
-## 
 
 ## Where? Coordinate Reference Systems
 
@@ -191,6 +189,7 @@ library(readxl)
 library(janitor)
 library(spatialreg)
 library(splm)
+library(spgwr)
 
 ```
 
@@ -198,21 +197,33 @@ library(splm)
 ##web address for data is here, can't read directly from url - https://data.london.gov.uk/download/ward-profiles-and-atlas/a187b63e-bf4f-4449-b644-ab86a0a8569d/ward-profiles-excel-version.xls
 WardData <- read_excel("data/ward-profiles-excel-version.xls", range = "Data!A1:BO626", na = c("NA", "n/a")) %>% clean_names()
 
+ward_borough_lut <- read_excel("data/2001_to_2011_OA-LSOA-MSOA-WARD-BOROUGH.xls", sheet = "Ward")
+
 ##get some ward boundaries (2014) from here: https://data.london.gov.uk/dataset/statistical-gis-boundary-files-london
 LondonWardsMerged <- st_read("data/London_Ward_CityMerged.shp") %>%
+  st_transform(.,27700)
+
+LondonBorough <- st_read("data/London_Borough_excluding_MHW.shp") %>%
   st_transform(.,27700)
 ```
 
 ```{r}
+
 LondonWardsMerged <- LondonWardsMerged %>% 
   left_join(WardData, 
             by = c("GSS_CODE" = "new_code"))%>%
   dplyr::distinct(GSS_CODE, .keep_all = T)%>%
   dplyr::select(GSS_CODE, ward_name, average_gcse_capped_point_scores_2014, unauthorised_absence_in_all_schools_percent_2013)
 
+LondonWardsMerged <- LondonWardsMerged %>%
+  left_join(ward_borough_lut,
+            by = c("GSS_CODE" = "Ward11CD"))
+
 tmap_mode("view")
 tm_shape(LondonWardsMerged)+
-  tm_polygons(alpha = 0.2, col=NA)
+  tm_polygons(alpha = 0.2, col=NA)+
+tm_shape(LondonBorough)+
+  tm_polygons(alpha = 0, border.col = "black")
 ```
 :::
 :::
@@ -275,7 +286,7 @@ plot(LWard_nb, st_geometry(LondonWardsMerged), add=TRUE, col="red")
 :::
 :::
 
-## Spatial Analysis of 'where'?
+## Analysis of 'where'?
 
 -   Where in London do students perform best and worst in their post-16 exams?
 
@@ -305,8 +316,6 @@ Is there any pattern? Do better scores and worse scores appear to be clustered? 
 
 ## Spatial Autocorrelation
 
--   If there is a linear correlation between the variable and its spatial lag, we can observe that values in ***near*** places do tend to cluster
-
 ```{r}
 
 Lward.lw <- nb2listw(LWard_nb, style="W")
@@ -328,8 +337,9 @@ p + geom_point() + geom_smooth(method = "lm", se = FALSE) + xlab("Avg GCSE Score
 #p1 <- ggplot(LondonWardsMerged, aes(z_gcse, z_slag_gcse))
 #p1 + geom_point() + geom_smooth(method = "lm", se = FALSE)
 
-
 ```
+
+-   If there is a linear correlation between the variable and its spatial lag, we can observe that values in ***near*** places do tend to cluster
 
 ## Moran's I {.r-fit-text .column}
 
@@ -349,6 +359,23 @@ p + geom_point() + geom_smooth(method = "lm", se = FALSE) + xlab("Avg GCSE Score
 #    geom_point(data=mp[mp$is_inf,], aes(x=x, y=wx), shape=9) +
 #    xlab(xname) + ylab(paste0("Spatially lagged ", xname))
 #}
+
+
+#Reading in all schools basefile, and filtering out for the ones that are open, and in London
+LondonSchools <- read_csv("https://www.dropbox.com/s/pk56hu33liaog46/edubasealldata.csv?raw=1") %>% 
+  dplyr::filter(str_detect(`EstablishmentStatus (name)`, "Open")) %>%  
+  dplyr::filter(str_detect(`DistrictAdministrative (code)`, "^E09")) %>% 
+  clean_names()
+
+#Create a simplefeatures object out of the LondonSchools
+
+LondonSchools_sf <- LondonSchools %>% 
+  st_as_sf(., coords = c("easting", "northing")) %>% 
+  st_set_crs(27700)
+LondonSchools_sf <- LondonSchools_sf[LondonWardsMerged,]
+LondonSecondarySch_sf <- LondonSchools_sf %>%
+  filter(phase_of_education_code==4)
+
 ```
 
 ```{r echo = T}
@@ -357,14 +384,6 @@ moran.test(LondonWardsMerged$average_gcse_capped_point_scores_2014, nb2listw(LWa
 
 ## Moran's I
 
-::: columns
-::: {.column width="30%"}
--   Moran's I = 0.42
-
--   Moderate, positive spatial autocorrelation between average GCSE scores in London - some clustering of both low and high scores
-:::
-
-::: {.column width="70%"}
 ```{r}
 tm_shape(LondonWardsMerged)+
   tm_polygons(
@@ -374,10 +393,19 @@ tm_shape(LondonWardsMerged)+
     midpoint=NA,
     alpha = 0.5,
     title="Avg GCSE Score 2014",
-    border.alpha = 0)
+    border.alpha = 0)+
+tm_shape(LondonSecondarySch_sf)+
+  tm_dots(
+    col = "establishment_type_group_name",
+    title="School Type"
+    )
 ```
-:::
-:::
+
+-   Moran's I = 0.42
+
+-   Moderate, positive spatial autocorrelation between average GCSE scores in London - some clustering of both low and high scores
+
+-   Spatial Autocorrelation might be expected when distribution of schools overlaid and one realises that pupils from multiple neighbouring wards might attend the same school
 
 ## Explaining Spatial Patterns
 
@@ -389,23 +417,17 @@ tm_shape(LondonWardsMerged)+
 
 ## Explaining Spatial Patterns
 
-::: columns
-::: {.column width="50%"}
--   Taking the whole of London, it would appear that there is a moderately strong, negative relationship between missing school and exam performance
-
--   For every 1% of additional school days missed, we might expect a decrease of -41 points in GCSE score.
-
--   But does this relationship hold true across all wards in the city?
-:::
-
-::: {.column width="50%"}
 ```{r}
 coef(lm(average_gcse_capped_point_scores_2014 ~ unauthorised_absence_in_all_schools_percent_2013, data = LondonWardsMerged))
 p2 <- ggplot(LondonWardsMerged, aes(x = unauthorised_absence_in_all_schools_percent_2013, y = average_gcse_capped_point_scores_2014))
 p2 + geom_point() + geom_smooth(method = "lm", se = FALSE) + xlab("% Unauthoried Absence Days 2013") + ylab("Avg GCSE Score 2014")
 ```
-:::
-:::
+
+-   Taking the whole of London, it would appear that there is a moderately strong, negative relationship between missing school and exam performance
+
+-   For every 1% of additional school days missed, we might expect a decrease of -41 points in GCSE score.
+
+-   But does this relationship hold true across all wards in the city?
 
 ## Explaining Spatial Patterns
 
@@ -439,7 +461,7 @@ tm_shape(LondonWardsMerged)+
 :::
 :::
 
-## Dealing with Spatial Patterns - Spatial Regression Models
+## Dealing with Spatial Patterns - Spatial Regression Models (the spatial lag model)
 
 ::: columns
 ::: {.r-fit-text .column width="25%"}
@@ -454,5 +476,190 @@ slag_gcse_model <- lagsarlm(average_gcse_capped_point_scores_2014 ~ unauthorised
 
 summary(slag_gcse_model)
 ```
+:::
+:::
+
+## Dealing with Spatial Patterns - Spatial Non-Stationarity
+
+-   One reason behind a clustering of residuals could be that the relationship between dependent and independent variables might not remain constant across space
+
+    -   In some parts of London, it could be that as unauthorised absence from school rises, exam grades also rise (as unlikely as that might be!).
+
+    -   Or, more plausibly, that in some parts of the city, absence has an even more pronounced negative effect than in others.
+
+    -   It's also likely that the intercept values (the average value of GSCE rules, given no days of unauthorised absence) will be different in different parts of the city - some areas, on average, doing better than others
+
+-   We can test for the presence of such phenomena by running a series of smaller, more localised regressions and comparing the coefficients that emerge
+
+## Geographically Weighted Regression
+
+::: columns
+::: {.column width="30%"}
+-   GWR is a method for systematically running a series of localised regression analyses across a study area, collecting coefficients and other diagnostics for each zone of interest.
+
+-   Something similar can be achieved through spatial sub-setting - i.e. running analyses for groups of zones within a higher level geography
+:::
+
+::: {.column width="70%"}
+```{r}
+p2 <- ggplot(LondonWardsMerged, aes(x = unauthorised_absence_in_all_schools_percent_2013, y = average_gcse_capped_point_scores_2014, colour = LAD11NM))
+
+p2 + geom_point() + geom_smooth(method = "lm", se = FALSE) + xlab("% Unauthoried Absence Days 2013") + ylab("Avg GCSE Score 2014")
+```
+:::
+:::
+
+## Geographically Weighted Regression
+
+```{r}
+(split_plot <- ggplot(LondonWardsMerged, aes(x = unauthorised_absence_in_all_schools_percent_2013, y = average_gcse_capped_point_scores_2014, colour = LAD11NM)) + 
+  geom_point() + geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~ LAD11NM) + # create a facet for each mountain range
+  xlab("length") + 
+  ylab("test score"))
+```
+
+## Geographically Weighted Regression
+
+::: columns
+::: {.column width="50%"}
+-   In a GWR analysis, kernel weighting functions of different bandwidths (diameters) and shapes are used to include and weight or exclude neighbouring observations
+
+-   Adaptive weighting can be used to adjust the size of the kernel according to some threshold of observations
+
+-   For every point in the dataset a regression is run including the values within the kernel (which, of course, can only be achieved effectively through understanding the coordinate reference system of the observations)
+:::
+
+::: {.column width="50%"}
+[![](https://gistbok.ucgis.org/sites/default/files/AM34_Fig2.png)](https://gistbok.ucgis.org/bok-topics/geographically-weighted-regression-framework)
+:::
+:::
+
+## Geographically Weighted Regression
+
+::: columns
+::: {.column width="30%"}
+-   Plotting coefficient values for each ward reveals noticable non-stationarity in the relationship between absence and GSCE scores
+
+-   In well-off central London boroughs (particularly Hammersmith and Fulham, Kensington and Chelsea and Camden) we see evidence that absence is positively related to GCSE performance
+
+-   In some of the outer-London boroughs (Barnet, Sutton, Richmond etc.) the effect of missing school is even more severe than it is elsewhere in the city
+:::
+
+::: {.column width="70%"}
+```{r, echo=F, results='hide'}
+coordsW1 <- LondonWardsMerged %>%
+  st_centroid() %>%
+  st_geometry()
+
+coordsW2 <- st_coordinates(coordsW1)
+
+LondonWardsMerged2 <- cbind(LondonWardsMerged,coordsW2)
+
+GWRbandwidth <- gwr.sel(average_gcse_capped_point_scores_2014 ~ unauthorised_absence_in_all_schools_percent_2013, 
+                  data = LondonWardsMerged2, 
+                  coords=cbind(LondonWardsMerged2$X, LondonWardsMerged2$Y), adapt=T)
+
+gwr.model <- gwr(average_gcse_capped_point_scores_2014 ~ unauthorised_absence_in_all_schools_percent_2013,  
+                data = LondonWardsMerged2, 
+                coords=cbind(LondonWardsMerged2$X, LondonWardsMerged2$Y), 
+                adapt=GWRbandwidth,
+                #matrix output
+                hatmatrix=TRUE,
+                #standard error
+                se.fit=TRUE)
+
+results <- as.data.frame(gwr.model$SDF)
+
+LondonWardsMerged2 <- LondonWardsMerged2 %>%
+  mutate(coefUnauthAbs = results$unauthorised_absence_in_all_schools_percent_2013,
+         R2UnauthAbs = results$localR2,
+         InterceptUnathAbs = results$X.Intercept.,
+         PredGCSEScore = results$pred)
+
+```
+
+```{r}
+tm_shape(LondonWardsMerged2)+
+  tm_polygons(
+    "coefUnauthAbs",
+    palette="RdBu",
+    midpoint=0,
+    alpha = 0.8,
+    title="GWR Local Coefficients",
+    border.alpha = 0) +
+tm_shape(LondonBorough)+
+  tm_polygons(alpha = 0, border.col = "black")
+```
+:::
+:::
+
+## Geographically Weighted Regression
+
+```{r}
+tm_shape(LondonWardsMerged2)+
+  tm_polygons(
+    "InterceptUnathAbs",
+    palette="BuPu",
+    alpha = 0.8,
+    title="GWR Intercepts",
+    border.alpha = 0) +
+tm_shape(LondonBorough)+
+  tm_polygons(alpha = 0, border.col = "black")
+```
+
+## Modifiable Areal Units and Ecological Fallacies
+
+::: columns
+::: {.column width="50%"}
+```{r}
+WardAggBorough <- LondonWardsMerged %>%
+  group_by(LAD11NM) %>%
+  summarise(average_gcse_capped_point_scores_2014=mean(average_gcse_capped_point_scores_2014),
+  unauthorised_absence_in_all_schools_percent_2013=mean(unauthorised_absence_in_all_schools_percent_2013), 
+  geometry = st_union(geometry))
+
+tm_shape(WardAggBorough)+
+  tm_polygons(
+    "average_gcse_capped_point_scores_2014",
+    style="jenks",
+    palette="Reds",
+    midpoint=NA,
+    alpha = 0.5,
+    title="Avg GCSE Score 2014",
+    border.alpha = 0)
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+tm_shape(LondonWardsMerged)+
+  tm_polygons(
+    "average_gcse_capped_point_scores_2014",
+    style="jenks",
+    palette="Reds",
+    midpoint=NA,
+    alpha = 0.5,
+    title="Avg GCSE Score 2014",
+    border.alpha = 0)
+```
+:::
+
+-   Methods which accommodate space explicitly can help us better understand spatial phenomomena
+
+-   However, just because patterns can be obeserved at one scale, level of aggregation or for one particular arrangement of spatial units, it is not necessarily the case that these patterns will hold or even be relevant should the space be arranged differently
+:::
+
+## Modifiable Areal Units and Ecological Fallacies
+
+::: columns
+::: {.column width="50%"}
+-   Politicians have known about the issues of scale and aggregation for a long time
+
+-   The practice of Gerrymandering is widespread wherever there is a first-past-the-post electoral system
+:::
+
+::: {.column width="50%"}
+[![](images/gerrymandering.png)](https://link.springer.com/article/10.1007/s12041-022-01383-w)
 :::
 :::
