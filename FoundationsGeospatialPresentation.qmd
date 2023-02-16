@@ -144,6 +144,8 @@ Where? Coordinate Reference Systems
     -   explain why something may be occurring where it is
 
     -   make better predictions about nearby or further away things
+
+-   Underpins the whole Geodeomographics (customer segmentation) industry!!
 :::
 
 ::: {.r-fit-text .column width="50%"}
@@ -157,7 +159,7 @@ Where? Coordinate Reference Systems
 ::: {.r-fit-text .column width="50%"}
 -   Near and distant can mean different things in different contexts
 
-    -   the farthest one would travel to buy a pint of milk is somewhat different to farthest one might be willing to commute for a job
+    -   the furthest one would travel to buy a pint of milk is somewhat different to furthest one might be willing to commute for a job
 
 -   In spatial data science one way of separating near from distant can simply be to define their topological relationship
 
@@ -172,7 +174,8 @@ Where? Coordinate Reference Systems
 ## Where? Relative - Exploring Near and Distant
 
 ::: columns
-::: {.column width="35%"}
+::: {.r-fit-text .column width="35%"}
+-   Topologically, if two polygons share a boundary, they are immediate neighbours and might be defined as 'near'
 -   If we take London and all of its Wards we can begin to explore how we can define those that are near and those that are distant from each other
 :::
 
@@ -184,6 +187,10 @@ library(spdep)
 library(sf)
 library(readxl)
 library(janitor)
+library(spatialreg)
+library(splm)
+library(plm)
+
 ```
 
 ```{r, echo=F, results='hide'}
@@ -206,7 +213,7 @@ LondonWardsMerged <- LondonWardsMerged %>%
   left_join(WardData, 
             by = c("GSS_CODE" = "new_code"))%>%
   dplyr::distinct(GSS_CODE, .keep_all = T)%>%
-  dplyr::select(GSS_CODE, ward_name, average_gcse_capped_point_scores_2014)
+  dplyr::select(GSS_CODE, ward_name, average_gcse_capped_point_scores_2014, unauthorised_absence_in_all_schools_percent_2013)
 ```
 :::
 :::
@@ -215,7 +222,7 @@ LondonWardsMerged <- LondonWardsMerged %>%
 
 ::: columns
 ::: {.r-fit-text .column width="20%"}
--   If we measure the distance from the centre (centroid) of one ward to another, then we might decide that the 1st, 2nd 3rd, kth. closest wards are near, the others are far.
+-   If we measure the distance from the centre (centroid) of one ward to another, then we might decide that the 1st, 2nd, 3rd, kth. closest wards are near, the others are far.
 
 -   We can then decide to include the "k" nearest neighbours or exclude the rest
 :::
@@ -264,10 +271,53 @@ title(main="K nearest neighbours, k = 3")
 ::: {.column width="80%"}
 ```{r}
 LWard_nb <- poly2nb(as(LondonWardsMerged, "Spatial"))
+LWard_knn <- knn2nb(col.knn, row.names = NULL, sym = FALSE)
 
 plot(st_geometry(LondonWardsMerged), border="grey")
-plot(LWard_nb, st_geometry(LondonWardsMerged), col="red")
+plot(LWard_nb, st_geometry(LondonWardsMerged), add=TRUE, col="red")
 
 ```
 :::
 :::
+
+## Spatial Analysis of 'where'?
+
+Where in London do students do best and worst at school?
+
+```{r}
+tm_shape(LondonWardsMerged)+
+  tm_polygons(
+    "average_gcse_capped_point_scores_2014",
+    style="jenks",
+    palette="Reds",
+    midpoint=NA,
+    alpha = 0.5,
+    title="Avg GCSE Score 2014",
+    border.alpha = 0)
+```
+
+Is there any pattern? Do better scores and worse scores appear to be clustered? How can we tell?
+
+## 
+Spatial Autocorrelation
+
+-   Spatial Autocorrelation is the phenomenon of near things being more similar than distant things. Do neighbouring wards have more similar GCSE points scores than distant wards?
+
+-   We can test for spatial autocorrelation by comparing the GCSE Scores in any given ward with the GCSE scores in *neighbouring* wards (however we choose to define our neighbours - k-nearest, those that are contiguous etc.)
+
+## Spatial Autocorrelation 
+
+```{r}
+
+Lward.lw <- nb2listw(LWard_nb, style="C")
+
+Vx <- lag.listw(nb2listw(LWard_nb, style="W"), LondonWardsMerged$average_gcse_capped_point_scores_2014)
+
+LondonWardsMerged$slag_gcse <- Vx
+
+coef(lm(average_gcse_capped_point_scores_2014 ~ slag_gcse, data = LondonWardsMerged))
+p <- ggplot(LondonWardsMerged, aes(slag_gcse, average_gcse_capped_point_scores_2014))
+p + geom_point() + geom_smooth(method = "lm", se = FALSE)
+
+
+```
