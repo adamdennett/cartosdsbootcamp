@@ -311,13 +311,23 @@ Spatial Autocorrelation
 
 Lward.lw <- nb2listw(LWard_nb, style="C")
 
+LondonWardsMerged$z_gcse <- scale(LondonWardsMerged$average_gcse_capped_point_scores_2014)
+
 Vx <- lag.listw(nb2listw(LWard_nb, style="W"), LondonWardsMerged$average_gcse_capped_point_scores_2014)
 
 LondonWardsMerged$slag_gcse <- Vx
+
+LondonWardsMerged$z_slag_gcse <- scale(LondonWardsMerged$z_gcse)
 
 coef(lm(average_gcse_capped_point_scores_2014 ~ slag_gcse, data = LondonWardsMerged))
 p <- ggplot(LondonWardsMerged, aes(slag_gcse, average_gcse_capped_point_scores_2014))
 p + geom_point() + geom_smooth(method = "lm", se = FALSE)
 
 
+```
+
+Moran's I
+
+```{r}
+moran.test(LondonWardsMerged$average_gcse_capped_point_scores_2014, Lward.lw)
 ```
