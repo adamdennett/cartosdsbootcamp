@@ -1,7 +1,8 @@
 ---
 title: "Foundations of Geospatial Analysis"
-author: "Adam Dennett"
+author: "Professor Adam Dennett"
 institute: Centre for Advanced Spatial Analysis, University College London
+date: today
 format: 
   revealjs:
     smaller: true
@@ -10,6 +11,9 @@ format:
     transition-speed: fast
     width: 1600
     height: 900
+    footer: | 
+      https://github.com/adamdennett/cartosdsbootcamp 
+date-format: long
 editor: visual
 slide-number: true
 ---
@@ -30,7 +34,9 @@ slide-number: true
 
 -   An illustrative example analysing some spatial data in London - demonstrating the "spatial is special" idiom and how we might account for spatial factors in our analysis
 
--   I hope you'll all leave with a better understanding of how we should pay attention to the influence of space in any analysis
+-   All slides and examples are produced in RMarkdown using Quarto and R so everything can be forked and reproduced in your own time later - just go to the Github Repo link below
+
+-   By the end I hope you'll all leave with a better introductorhy understanding of how we should pay attention to the influence of space in any analysis
 
 ## Key Geospatial Concepts
 
@@ -140,7 +146,7 @@ slide-number: true
 
 -   This observation underpins much of what spatial data scientists do
 
--   Being able to locate something in space allows us to:
+-   Being able to locate something in space, relative to something else, allows us to:
 
     -   explain why something may be occurring where it is
 
@@ -153,6 +159,10 @@ slide-number: true
 ![](images/tobler.jpg){width="300"}
 :::
 :::
+
+## Where? Relative - John Snow's Cholera Map
+
+[![](https://upload.wikimedia.org/wikipedia/commons/2/27/Snow-cholera-map-1.jpg)](https://www.esri.com/arcgis-blog/products/arcgis-pro/mapping/something-in-the-water-the-mythology-of-snows-map-of-cholera/)
 
 ## Where? Relative - Defining 'near' and 'distant'
 
@@ -174,12 +184,10 @@ slide-number: true
 
 ## Where? Relative - Exploring Near and Distant
 
-::: columns
-::: {.r-fit-text .column width="35%"}
 -   Near and distant in London
-:::
+-   Map shows 2011 Census Wards in London, within Borough Boundaries
+-   The Greater London Authority produced the London Ward Atlas - <https://data.london.gov.uk/dataset/ward-profiles-and-atlas> - which collates a range of demographic and economic indicators for each of these zones in the city
 
-::: {.column width="65%"}
 ```{r}
 library(tidyverse)
 library(tmap)
@@ -225,66 +233,49 @@ tm_shape(LondonWardsMerged)+
 tm_shape(LondonBorough)+
   tm_polygons(alpha = 0, border.col = "black")
 ```
-:::
-:::
 
 ## Where? Relative - Exploring Near and Distant
 
-::: columns
-::: {.r-fit-text .column width="20%"}
--   If we measure the distance from the centre (centroid) of one ward to another, then we might decide that the 1st, 2nd, 3rd, kth. closest wards are near, the others are far.
-:::
-
-::: {.column width="80%"}
 ```{r}
-
 coordsW <- coordinates(as(LondonWardsMerged, "Spatial"))  
 
 col.knn <- knearneigh(coordsW, k=1)
 plot(st_geometry(LondonWardsMerged), border="grey")
-plot(knn2nb(col.knn), coordsW, add=TRUE, col="red")
+plot(knn2nb(col.knn), coordsW, add=TRUE, col="red", pch=".", cex=0.6)
 title(main="K nearest neighbours, k = 1")
 ```
-:::
-:::
+
+-   If we measure the distance from the centre (centroid) of one ward to another, then we might decide that the 1st, 2nd, 3rd, kth. closest wards are near, the others are far
+
+-   These neighbour relationships can be stored in an $n*n$ 'spatial weights' matrix
+
+-   The `spdep` package in R
 
 ## Where? Relative - Exploring Near and Distant
 
-::: columns
-::: {.r-fit-text .column width="20%"}
--   We can then decide to include the "k" nearest neighbours or exclude the rest
-:::
-
-::: {.column width="80%"}
 ```{r}
 col.knn <- knearneigh(coordsW, k=3)
 plot(st_geometry(LondonWardsMerged), border="grey")
-plot(knn2nb(col.knn), coordsW, add=TRUE, col="red")
+plot(knn2nb(col.knn), coordsW, add=TRUE, col="red", pch=".", cex=0.6)
 title(main="K nearest neighbours, k = 3")
 ```
-:::
-:::
+
+-   We can then decide to include the "k" nearest neighbours or exclude the rest
 
 ## Where? Relative - Exploring Near and Distant
 
-::: columns
-::: {.r-fit-text .column width="20%"}
--   Other conceptions of *near* might include any contiguous ward with *distant* simply being those which are not contiguous
-
--   Near or distant could also be defined by some distance threshold
-:::
-
-::: {.column width="80%"}
 ```{r}
 LWard_nb <- poly2nb(as(LondonWardsMerged, "Spatial"))
 LWard_knn <- knn2nb(col.knn, row.names = NULL, sym = FALSE)
 
 plot(st_geometry(LondonWardsMerged), border="grey")
-plot(LWard_nb, st_geometry(LondonWardsMerged), add=TRUE, col="red")
+plot(LWard_nb, st_geometry(LondonWardsMerged), add=TRUE, col="red",pch=".", cex=0.6)
 
 ```
-:::
-:::
+
+-   Other conceptions of *near* might include any contiguous ward with *distant* simply being those which are not contiguous
+
+-   Near or distant could also be defined by some distance threshold
 
 ## Analysis of 'where'?
 
@@ -313,6 +304,8 @@ Is there any pattern? Do better scores and worse scores appear to be clustered? 
 -   Can test for spatial autocorrelation by comparing the GCSE Scores in any given ward with the GCSE scores in *neighbouring* wards (however we choose to define our neighbours - k-nearest, those that are contiguous etc.)
 
 -   Average value of GCSE scores in the neighbouring wards is known as the ***spatial lag*** of GSCE scores
+
+![](https://i.redd.it/muuhbvphzvp81.jpg)
 
 ## Spatial Autocorrelation
 
@@ -415,9 +408,11 @@ tm_shape(LondonSecondarySch_sf)+
 
 -   Hypothesis: ***wards where there are higher rates of absence from school might tend to experience lower average exam grades***
 
+    ![](https://imgs.xkcd.com/comics/students.png)
+
 ## Explaining Spatial Patterns
 
-```{r}
+```{r echo=TRUE}
 coef(lm(average_gcse_capped_point_scores_2014 ~ unauthorised_absence_in_all_schools_percent_2013, data = LondonWardsMerged))
 p2 <- ggplot(LondonWardsMerged, aes(x = unauthorised_absence_in_all_schools_percent_2013, y = average_gcse_capped_point_scores_2014))
 p2 + geom_point() + geom_smooth(method = "lm", se = FALSE) + xlab("% Unauthoried Absence Days 2013") + ylab("Avg GCSE Score 2014")
@@ -463,24 +458,22 @@ tm_shape(LondonWardsMerged)+
 
 ## Dealing with Spatial Patterns - Spatial Regression Models (the spatial lag model)
 
-::: columns
-::: {.r-fit-text .column width="25%"}
--   One way of coping with spatial dependence in the dependent variable is to include the spatial lag of that variable as an independent explanatory variable
-
--   Running the spatial lag model reveals that the spatial lag ***is*** statistically significant and has the effect of reducing the estimated impact of missing 1% of schools days from -42 points to -31 points.
-:::
-
-::: {.column width="75%"}
 ```{r}
 slag_gcse_model <- lagsarlm(average_gcse_capped_point_scores_2014 ~ unauthorised_absence_in_all_schools_percent_2013, data = LondonWardsMerged, nb2listw(LWard_nb, style="W"), method = "eigen")
 
 summary(slag_gcse_model)
 ```
-:::
-:::
+
+-   One way of coping with spatial dependence in the dependent variable is to include the spatial lag of that variable as an independent explanatory variable
+
+-   the `spatialreg` package in R allows us to easily incorporate a spatial lag of the dependent variable as an independent variable $\rho$ (Rho) in a standard linear regression model
+
+-   Running the spatial lag model reveals that the spatial lag ***is*** statistically significant and has the effect of reducing the estimated impact of missing 1% of schools days from -42 points to -31 points.
 
 ## Dealing with Spatial Patterns - Spatial Non-Stationarity
 
+::: columns
+::: {.column width="50%"}
 -   One reason behind a clustering of residuals could be that the relationship between dependent and independent variables might not remain constant across space
 
     -   In some parts of London, it could be that as unauthorised absence from school rises, exam grades also rise (as unlikely as that might be!).
@@ -490,12 +483,20 @@ summary(slag_gcse_model)
     -   It's also likely that the intercept values (the average value of GSCE rules, given no days of unauthorised absence) will be different in different parts of the city - some areas, on average, doing better than others
 
 -   We can test for the presence of such phenomena by running a series of smaller, more localised regressions and comparing the coefficients that emerge
+:::
+
+::: {.column width="50%"}
+![](https://imgresizer.eurosport.com/unsafe/1200x0/filters:format(jpeg):focal(1205x459:1207x457)/origin-imgresizer.eurosport.com/2015/11/03/1725525-36508865-2560-1440.jpg){height="40%"}
+
+![](https://assets.goal.com/v3/assets/bltcc7a7ffd2fbf71f5/bltbdf47a3e9a7798e4/60dc2a008491e60f790dbc37/977a5487a57efc39e4150c03ca24fb3dba06df4e.jpg?auto=webp&format=jpg&quality=100){height="40%"}
+:::
+:::
 
 ## Geographically Weighted Regression
 
 ::: columns
 ::: {.column width="30%"}
--   GWR is a method for systematically running a series of localised regression analyses across a study area, collecting coefficients and other diagnostics for each zone of interest.
+-   GWR is a method for systematically running a series of localised regression analyses across a study area, collecting coefficients and other diagnostics for an independent variable in each zone of interest.
 
 -   Something similar can be achieved through spatial sub-setting - i.e. running analyses for groups of zones within a higher level geography
 :::
@@ -594,19 +595,25 @@ tm_shape(LondonBorough)+
 :::
 :::
 
-## Geographically Weighted Regression
+## Modifiable Areal Units and Ecological Fallacies
 
-```{r}
-tm_shape(LondonWardsMerged2)+
-  tm_polygons(
-    "InterceptUnathAbs",
-    palette="BuPu",
-    alpha = 0.8,
-    title="GWR Intercepts",
-    border.alpha = 0) +
-tm_shape(LondonBorough)+
-  tm_polygons(alpha = 0, border.col = "black")
-```
+::: columns
+::: {.column width="50%"}
+-   Methods which accommodate space explicitly can help us better understand spatial phenomomena, but the arrangement of space can alter perceptions and the outcomes of analyses
+
+-   The Modifiable Areal Unit Problem (MAUP) - popularised in the 1980s by Stan Openshaw - describes issues that relate to the shape, scale and aggregation of underlying phenomenon to artificial spatial units
+
+-   Politicians have known about the issues of scale and aggregation for a long time and have used it to their advantage
+
+-   The practice of Gerrymandering is widespread wherever there is a first-past-the-post electoral system and has been used to manipulate vote counts to influence election outcomes
+
+:::
+
+::: {.column width="50%"}
+[![](images/gerrymandering.png)](https://link.springer.com/article/10.1007/s12041-022-01383-w)
+:::
+:::
+
 
 ## Modifiable Areal Units and Ecological Fallacies
 
@@ -645,21 +652,13 @@ tm_shape(LondonWardsMerged)+
 ```
 :::
 
--   Methods which accommodate space explicitly can help us better understand spatial phenomomena
+-   Related to the MAUP, the Ecological Fallacy describes a confusion between patterns revealed at one level of aggregation and the assumption that they apply either to individuals or lower levels of aggregation
 
--   However, just because patterns can be obeserved at one scale, level of aggregation or for one particular arrangement of spatial units, it is not necessarily the case that these patterns will hold or even be relevant should the space be arranged differently
+-   The basic idea that just because a patterns of educational attainment are revealed at Borough level, they translate down to neighbourhood levels
+
+-   "Simpson's Paradox"
+
 :::
 
-## Modifiable Areal Units and Ecological Fallacies
+## Conclusions
 
-::: columns
-::: {.column width="50%"}
--   Politicians have known about the issues of scale and aggregation for a long time
-
--   The practice of Gerrymandering is widespread wherever there is a first-past-the-post electoral system
-:::
-
-::: {.column width="50%"}
-[![](images/gerrymandering.png)](https://link.springer.com/article/10.1007/s12041-022-01383-w)
-:::
-:::
