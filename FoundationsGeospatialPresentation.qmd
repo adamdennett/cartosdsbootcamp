@@ -1,18 +1,20 @@
 ---
 title: "Foundations of Geospatial Analysis"
-author: "Professor Adam Dennett"
-institute: Centre for Advanced Spatial Analysis, University College London
+author: "Professor Adam Dennett - @adam_dennett"
+institute: Bartlett Centre for Advanced Spatial Analysis, University College London
 date: today
 format: 
   revealjs:
+    theme: solarized
+    chalkboard: true
     smaller: true
-    logo: casa_logo.jpg
+    logo: images/University_College_London_logo.svg
     transition: slide
     transition-speed: fast
     width: 1600
     height: 900
     footer: | 
-      https://github.com/adamdennett/cartosdsbootcamp 
+      <https://github.com/adamdennett/cartosdsbootcamp> 
 date-format: long
 editor: visual
 slide-number: true
@@ -20,7 +22,7 @@ slide-number: true
 
 ## About Me
 
-![](images/casa_logo.jpg){fig-align="right" width="74" height="100"}
+![](images/CASA_logo_CMYK-cropped.svg){fig-align="right" height="200"}
 
 -   Professor of Urban Analytics & Current Head of Department \@ Bartlett Centre for Advanced Spatial Analysis (CASA), UCL
 
@@ -36,7 +38,7 @@ slide-number: true
 
 -   All slides and examples are produced in RMarkdown using Quarto and R so everything can be forked and reproduced in your own time later - just go to the Github Repo link below
 
--   By the end I hope you'll all leave with a better introductorhy understanding of how we should pay attention to the influence of space in any analysis
+-   By the end I hope you'll all leave with a better introductory understanding of why and how we should pay attention to the influence of space in any analysis
 
 ## Key Geospatial Concepts
 
@@ -46,6 +48,10 @@ slide-number: true
 
 ::: {.fragment .fade-in-then-semi-out}
 -   Where? (relative)
+:::
+
+::: {.fragment .fade-in-then-semi-out}
+-   Storing where - spatial data
 :::
 
 ::: {.fragment .fade-in-then-semi-out}
@@ -129,12 +135,58 @@ slide-number: true
 -   Most objects that spatial data scientists are concerned with (apart from gridded representations, which we will ignore for now!) can be simplified to either a point, a line or a polygon in that space
 
 -   Polygons and lines are just multiple point coordinates joined together!
+
+-   The examples on the right store geometries in the 'well-known-text' (WKT) format for representing vector (point, line, polygon) geometries
 :::
 
 ::: {.r-fit-text .column width="50%"}
 [![](images/wkt_geom_primitives.png)](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry)
 :::
 :::
+
+## Storing where - managing spatial data
+
+::: columns
+::: {.r-fit-text .column width="50%"}
+-   Impossible to talk about spatial data without mentioning the shapefile
+
+-   Developed in the 1980s by ESRI and has become, pretty much, the de facto standard for storing and sharing spatial data - even though it's a terrible format!
+
+-   Shapefiles store geometries (shapes) and attributes (information about those shapes)
+
+-   Not a single file, actually a collection of files
+
+    -   .shp - geometries
+
+    -   .shx - index
+
+    -   .dbf - attributes
+
+    -   +some others!
+
+-   Superseded by **LOTS** of alternative formats - geojson (web), GeoPackage (everything) which do the same thing in better ways for different applications
+:::
+
+::: {.r-fit-text .column width="50%"}
+![](images/shapefile.png)
+:::
+:::
+
+## Storing where - Simple Features
+
+-   Simple Features - OGC (Open Geospatial Consortium) standard that specifies a common storage and access model for 2D geometries
+
+-   2 part standard:
+
+    -   Part 1 - Common Architecture defining geometries, attributes etc. via WKT
+
+    -   Part 2 - supports storage, retrieval, query and update of simple geospatial feature collections via SQL (structured query language -- been around since the 1970s)
+
+-   Simple Features implemented in most spatially enabled database management systems (e.g. PostGIS extension for PostgreSQL, Oracle Spatial etc.)
+
+-   `sf` package in R enables storage of spatial data and attributes in a single data frame object
+
+![](https://r-spatial.github.io/sf/articles/sf_xfig.png)
 
 ## Where? Relative - Tobler's First Law of Geography
 
@@ -249,7 +301,7 @@ title(main="K nearest neighbours, k = 1")
 
 -   These neighbour relationships can be stored in an $n*n$ 'spatial weights' matrix
 
--   The `spdep` package in R
+-   The `spdep` package in R will calculate a range of spatial weights matrices given a set of geometries
 
 ## Where? Relative - Exploring Near and Distant
 
@@ -297,6 +349,8 @@ Is there any pattern? Do better scores and worse scores appear to be clustered? 
 
 ## Spatial Autocorrelation
 
+::: columns
+::: {.column width="50%"}
 -   Spatial Autocorrelation - phenomenon of near things being more similar than distant things.
 
     -   Do neighbouring wards have more similar GCSE points scores than distant wards?
@@ -304,8 +358,14 @@ Is there any pattern? Do better scores and worse scores appear to be clustered? 
 -   Can test for spatial autocorrelation by comparing the GCSE Scores in any given ward with the GCSE scores in *neighbouring* wards (however we choose to define our neighbours - k-nearest, those that are contiguous etc.)
 
 -   Average value of GCSE scores in the neighbouring wards is known as the ***spatial lag*** of GSCE scores
+:::
 
+::: {.column width="50%"}
 ![](https://i.redd.it/muuhbvphzvp81.jpg)
+:::
+:::
+
+![]()
 
 ## Spatial Autocorrelation
 
@@ -332,11 +392,11 @@ p + geom_point() + geom_smooth(method = "lm", se = FALSE) + xlab("Avg GCSE Score
 
 ```
 
--   If there is a linear correlation between the variable and its spatial lag, we can observe that values in ***near*** places do tend to cluster
+-   If there is a linear correlation between the variable and its spatial lag (don't ask me why the lag is the $y$ variable in this case!), we can observe that values in ***near*** places do tend to cluster
 
 ## Moran's I {.r-fit-text .column}
 
--   Moran's I is another name for the least-squares regression slope parameter
+-   Moran's I is another name for the least-squares regression slope parameter when the variable is correlated with its spatial lag)
 -   Values range from +1 (perfect spatial autocorrelation) to -1 (perfect dispersal) with values close to 0 indicating no relationship
 
 ```{r}
@@ -406,13 +466,13 @@ tm_shape(LondonSecondarySch_sf)+
 
 -   Our own experience might tell us that missing class could negatively impact our ability to learn things in that class
 
--   Hypothesis: ***wards where there are higher rates of absence from school might tend to experience lower average exam grades***
+-   Hypothesis: ***wards with higher rates of absence from school will tend to experience lower average exam grades***
 
     ![](https://imgs.xkcd.com/comics/students.png)
 
 ## Explaining Spatial Patterns
 
-```{r echo=TRUE}
+```{r}
 coef(lm(average_gcse_capped_point_scores_2014 ~ unauthorised_absence_in_all_schools_percent_2013, data = LondonWardsMerged))
 p2 <- ggplot(LondonWardsMerged, aes(x = unauthorised_absence_in_all_schools_percent_2013, y = average_gcse_capped_point_scores_2014))
 p2 + geom_point() + geom_smooth(method = "lm", se = FALSE) + xlab("% Unauthoried Absence Days 2013") + ylab("Avg GCSE Score 2014")
@@ -595,7 +655,7 @@ tm_shape(LondonBorough)+
 :::
 :::
 
-## Modifiable Areal Units and Ecological Fallacies
+## Scale and Shape - Modifiable Areal Units and Ecological Fallacies
 
 ::: columns
 ::: {.column width="50%"}
@@ -606,7 +666,6 @@ tm_shape(LondonBorough)+
 -   Politicians have known about the issues of scale and aggregation for a long time and have used it to their advantage
 
 -   The practice of Gerrymandering is widespread wherever there is a first-past-the-post electoral system and has been used to manipulate vote counts to influence election outcomes
-
 :::
 
 ::: {.column width="50%"}
@@ -614,8 +673,7 @@ tm_shape(LondonBorough)+
 :::
 :::
 
-
-## Modifiable Areal Units and Ecological Fallacies
+## Scale and Shape - Modifiable Areal Units and Ecological Fallacies
 
 ::: columns
 ::: {.column width="50%"}
@@ -654,11 +712,23 @@ tm_shape(LondonWardsMerged)+
 
 -   Related to the MAUP, the Ecological Fallacy describes a confusion between patterns revealed at one level of aggregation and the assumption that they apply either to individuals or lower levels of aggregation
 
--   The basic idea that just because a patterns of educational attainment are revealed at Borough level, they translate down to neighbourhood levels
+-   The basic idea that just because a patterns of educational attainment are revealed at Borough level, they won't necessarily translate down to neighbourhood levels
 
--   "Simpson's Paradox"
-
+-   "Simpson's Paradox" - a type of ecological fallacy where the statistical association or correlation between two variables at one level of aggregation disappears or reverses at another - think back to the Geographically Weighted Regression example from earlier
 :::
 
 ## Conclusions
 
+-   Knowing ***where*** something occurs underpins everything spatial data scientists do
+
+-   Various conventions around how to locate something on the earth's surface and store information about it have emerged
+
+-   Near things ***are*** more related than distant things and being aware of this when analysing data with a spatial dimension is fundamental to carrying out a robust analysis
+
+-   Accounting for spatial clustering in data can help analysts:
+
+    -   more correctly interpret relationships between variables
+
+    -   avoid making erroneous generalisations that do not apply in local contexts
+
+    -   be aware of potentially significant consequences in statistical outcomes that are the result of a particular arrangement of space
