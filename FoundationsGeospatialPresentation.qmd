@@ -20,7 +20,7 @@ editor: visual
 slide-number: true
 ---
 
-## About Me 
+## About Me
 
 ![](images/CASA_logo_CMYK-cropped.svg){fig-align="right" height="200"}
 
