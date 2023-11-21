@@ -20,15 +20,15 @@ editor: visual
 slide-number: true
 ---
 
-## About Me
+## About Me 
 
 ![](images/CASA_logo_CMYK-cropped.svg){fig-align="right" height="200"}
 
--   Professor of Urban Analytics & Current Head of Department \@ Bartlett Centre for Advanced Spatial Analysis (CASA), UCL
+-   Professor of Urban Analytics \@ Bartlett Centre for Advanced Spatial Analysis (CASA), UCL
 
--   Geographer by background - ex-Secondary School Teacher - back in HE for 15+ years
+-   Geographer by background - ex-Secondary School Teacher - back in HE for 16+ years
 
--   Taught GIS / Spatial Data Science at postgrad level for last 10 years
+-   Taught GIS / Spatial Data Science at postgrad level for last 11 years
 
 ## About this session
 
